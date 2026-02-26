@@ -26,7 +26,8 @@ INSTALLED_APPS = [
     #Third Party
     'rest_framework',
     'corsheaders',
-    'hospital'
+    'hospital',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -94,6 +95,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ),
 }
 
 LANGUAGE_CODE = 'en-us'
@@ -114,3 +121,5 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOW_ALL_ORIGINS = True
