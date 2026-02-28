@@ -1,12 +1,16 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
-from .models import Patient, Appointment, MedicalRecord, Prescription, Consultation
+from .models import Patient, Appointment, MedicalRecord, Prescription, Consultation, User
 from .serializers import (
     PatientSerializer, AppointmentSerializer,
-    MedicalRecordSerializer, PrescriptionSerializer, ConsultationSerializer
+    MedicalRecordSerializer, PrescriptionSerializer, ConsultationSerializer,
+    UserSerializer
 )
 
+class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
 
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = Patient.objects.all()

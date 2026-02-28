@@ -35,4 +35,15 @@ class ConsultationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Consultation
-        fields = '__all__' # Or list specific field
+        fields = '__all__'
+
+
+class DoctorSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'name')
+
+    def get_name(self, obj):
+        return f"Dr. {obj.first_name} {obj.last_name}"

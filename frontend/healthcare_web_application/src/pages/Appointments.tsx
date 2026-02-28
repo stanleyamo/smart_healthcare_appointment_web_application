@@ -1,132 +1,256 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/emr/DashboardLayout";
 import { PageHeader } from "@/components/emr/PageHeader";
-import { StatusBadge } from "@/components/emr/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, Plus, Search, Clock, User, Filter } from "lucide-react";
-import { useState } from "react";
+import { Plus, Search, Clock, User, Filter, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Combobox } from "@/components/ui/combobox";
 
-const appointments = [
-  { id: "APT-001", patient: "Kwame Asante", doctor: "Dr. Akua Mensah", date: "2026-02-27", time: "09:00 AM", type: "Follow-up", status: "confirmed" as const },
-  { id: "APT-002", patient: "Ama Serwaa", doctor: "Dr. Kofi Boateng", date: "2026-02-27", time: "09:30 AM", type: "New Visit", status: "checked-in" as const },
-  { id: "APT-003", patient: "Yaw Mensah", doctor: "Dr. Akua Mensah", date: "2026-02-27", time: "10:00 AM", type: "Lab Review", status: "pending" as const },
-  { id: "APT-004", patient: "Efua Ankrah", doctor: "Dr. Esi Owusu", date: "2026-02-27", time: "10:30 AM", type: "Consultation", status: "confirmed" as const },
-  { id: "APT-005", patient: "Kofi Darko", doctor: "Dr. Akua Mensah", date: "2026-02-27", time: "11:00 AM", type: "Follow-up", status: "cancelled" as const },
-  { id: "APT-006", patient: "Adwoa Poku", doctor: "Dr. Kofi Boateng", date: "2026-02-27", time: "11:30 AM", type: "Emergency", status: "in-progress" as const },
-];
 
-const timeSlots = ["09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM", "04:00 PM"];
+interface Doctor { id: number; username: string; }
+interface Patient { id: number; name: string; }
+interface Appointment {
+  id: string;
+  patient: Patient;
+  doctor: Doctor;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+}
+
+const timeSlots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "14:00", "14:30", "15:00", "15:30", "16:00"];
 
 export default function Appointments() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [appRes, docRes, patRes] = await Promise.all([
+        api.get("appointments/"),
+        api.get("doctors/"),
+        api.get("patients/")
+      ]);
+      setAppointments(appRes.data);
+      setDoctors(docRes.data);
+      setPatients(patRes.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not load data." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreateAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedPatientId) {
+      toast({ variant: "destructive", title: "Error", description: "Please select a patient." });
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    const combinedDateTime = `${formData.get("date")}T${formData.get("time")}:00`;
+
+    const newAppointment = {
+      patient: selectedPatientId,
+      doctor: formData.get("doctor"),
+      date_time: combinedDateTime,
+      type: formData.get("type"),
+      status: "CONFIRMED"
+    };
+
+    try {
+      await api.post("appointments/", newAppointment);
+      toast({ title: "Success", description: "Appointment scheduled." });
+      setIsModalOpen(false);
+      setSelectedPatientId("");
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to create appointment." });
+    }
+  };
+
+  const handleUpdateStatus = async (appointmentId: string, newStatus: string) => {
+    try {
+      await api.patch(`appointments/${appointmentId}/`, { status: newStatus });
+      toast({ title: "Success", description: "Status updated." });
+      fetchData();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update." });
+    }
+  };
 
   const filtered = appointments.filter(a =>
-    a.patient.toLowerCase().includes(search.toLowerCase()) ||
-    a.doctor.toLowerCase().includes(search.toLowerCase())
+      a?.patient?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      a?.doctor?.username?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <DashboardLayout>
-      <PageHeader
-        title="Appointments"
-        description="Manage patient appointments and scheduling"
-        breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Appointments" }]}
-      />
+      <DashboardLayout>
+        <PageHeader
+            title="Appointments"
+            description="Manage patient appointments and scheduling"
+            breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Appointments" }]}
+        />
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by patient or doctor..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <Select defaultValue="all">
-          <SelectTrigger className="w-[160px]"><Filter className="h-4 w-4 mr-2" /><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button><Plus className="h-4 w-4 mr-2" />New Appointment</Button>
-      </div>
-
-      <Tabs defaultValue="list">
-        <TabsList>
-          <TabsTrigger value="list">List View</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule View</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="list">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(apt => (
-                    <TableRow key={apt.id}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{apt.id}</TableCell>
-                      <TableCell className="font-medium">{apt.patient}</TableCell>
-                      <TableCell>{apt.doctor}</TableCell>
-                      <TableCell>{apt.date}</TableCell>
-                      <TableCell>{apt.time}</TableCell>
-                      <TableCell>{apt.type}</TableCell>
-                      <TableCell><StatusBadge variant={apt.status}>{apt.status}</StatusBadge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">View</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="schedule">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {["Dr. Akua Mensah", "Dr. Kofi Boateng", "Dr. Esi Owusu"].map(doctor => (
-              <Card key={doctor}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <User className="h-4 w-4 text-primary" />{doctor}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {timeSlots.slice(0, 6).map(slot => {
-                    const apt = appointments.find(a => a.doctor === doctor && a.time === slot);
-                    return (
-                      <div key={slot} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${apt ? 'bg-primary/5 border-primary/20' : 'border-dashed border-muted-foreground/20'}`}>
-                        <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground w-16 shrink-0">{slot}</span>
-                        {apt ? (
-                          <span className="font-medium truncate">{apt.patient}</span>
-                        ) : (
-                          <span className="text-muted-foreground/50 italic">Available</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            ))}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search by patient or doctor..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-        </TabsContent>
-      </Tabs>
-    </DashboardLayout>
+
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />New Appointment</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Schedule Appointment</DialogTitle></DialogHeader>
+              <form onSubmit={handleCreateAppointment} className="space-y-4">
+                <div>
+                  <Label htmlFor="patient">Patient</Label>
+                  <Combobox
+                      options={patients.map(p => ({ value: p.id.toString(), label: p.name }))}
+                      value={selectedPatientId}
+                      onChange={setSelectedPatientId}
+                      placeholder="Search or select patient..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="doctor">Doctor</Label>
+                  <Select name="doctor" required>
+                    <SelectTrigger><SelectValue placeholder="Select Doctor" /></SelectTrigger>
+                    <SelectContent>
+                      {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.username}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date">Date</Label>
+                    <Input id="date" name="date" type="date" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="time">Time</Label>
+                    <Select name="time" required>
+                      <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
+                      <SelectContent>
+                        {timeSlots.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full">Schedule</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <Tabs defaultValue="list">
+          <TabsList>
+            <TabsTrigger value="list">List View</TabsTrigger>
+            <TabsTrigger value="schedule">Schedule View</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Patient</TableHead>
+                      <TableHead>Doctor</TableHead>
+                      <TableHead>Date/Time</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                        <TableRow><TableCell colSpan={4} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+                    ) : filtered.map(apt => (
+                        <TableRow key={apt.id}>
+                          <TableCell className="font-medium">{apt.patient?.name || 'Unknown'}</TableCell>
+                          <TableCell>{apt.doctor?.username || 'Unassigned'}</TableCell>
+
+                          <TableCell>{apt.date} {apt.time}</TableCell>
+
+
+                          <TableCell>
+                            <Select
+                                defaultValue={apt.status}
+                                onValueChange={(value) => handleUpdateStatus(apt.id, value)}
+                            >
+                              <SelectTrigger className="w-[130px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                                <SelectItem value="COMPLETED">Completed</SelectItem>
+                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {loading ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+              ) : doctors.map(doctor => (
+                  <Card key={doctor.id}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                        <User className="h-4 w-4 text-primary" />{doctor.username}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {timeSlots.slice(0, 6).map(slot => {
+                        const apt = appointments.find(a => a.doctor?.id === doctor.id && a.time === slot);
+                        return (
+                            <div key={slot} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${apt ? 'bg-primary/5 border-primary/20' : 'border-dashed border-muted-foreground/20'}`}>
+                              <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <span className="text-muted-foreground w-16 shrink-0">{slot}</span>
+                              {apt ? (
+                                  <span className="font-medium truncate">{apt.patient?.name}</span>
+                              ) : (
+                                  <span className="text-muted-foreground/50 italic">Available</span>
+                              )}
+                            </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DashboardLayout>
   );
 }

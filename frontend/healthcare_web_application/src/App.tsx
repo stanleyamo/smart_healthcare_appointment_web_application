@@ -16,6 +16,7 @@ import AuditLogs from "./pages/AuditLogs";
 import UserManagement from "./pages/UserManagement";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import PatientDetail from "./pages/PatientDetail";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/register" element={<Registration />} />
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/consultations" element={<Consultations />} />
+            <Route path="/patients/:id" element={<PatientDetail />} />
             <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/labs" element={<Labs />} />
             <Route path="/audit" element={<AuditLogs />} />

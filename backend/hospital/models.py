@@ -29,6 +29,7 @@ class Patient(models.Model):
     gender = models.CharField(max_length=10, choices=(('M', 'Male'), ('F', 'Female')))
     phone = models.CharField(max_length=15)
     created_at = models.DateTimeField(auto_now_add=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
