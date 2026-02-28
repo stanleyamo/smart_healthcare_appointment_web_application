@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/emr/DashboardLayout";
 import { PageHeader } from "@/components/emr/PageHeader";
 import { StatusBadge } from "@/components/emr/StatusBadge";
@@ -7,116 +8,219 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Stethoscope, Search, Plus, FileText, Clock } from "lucide-react";
-import { useState } from "react";
-
-const consultations = [
-  { id: "CON-001", patient: "Kwame Asante", doctor: "Dr. Akua Mensah", date: "2026-02-27", chief: "Persistent headache for 3 days", diagnosis: "Tension headache", status: "completed" as const },
-  { id: "CON-002", patient: "Ama Serwaa", doctor: "Dr. Kofi Boateng", date: "2026-02-27", chief: "Chest pain on exertion", diagnosis: "Pending", status: "in-progress" as const },
-  { id: "CON-003", patient: "Yaw Mensah", doctor: "Dr. Akua Mensah", date: "2026-02-26", chief: "Follow-up on malaria treatment", diagnosis: "Malaria - resolved", status: "completed" as const },
-  { id: "CON-004", patient: "Efua Ankrah", doctor: "Dr. Esi Owusu", date: "2026-02-26", chief: "Abdominal pain, nausea", diagnosis: "Gastritis", status: "completed" as const },
-  { id: "CON-005", patient: "Adwoa Poku", doctor: "Dr. Kofi Boateng", date: "2026-02-27", chief: "Difficulty breathing", diagnosis: "Pending", status: "pending" as const },
-];
+import { Stethoscope, Search, Plus, FileText, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
 
 export default function Consultations() {
+  const { toast } = useToast();
+  const [consultations, setConsultations] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("list");
 
-  const filtered = consultations.filter(c =>
-    c.patient.toLowerCase().includes(search.toLowerCase()) ||
-    c.chief.toLowerCase().includes(search.toLowerCase())
+
+  const [soapData, setSoapData] = useState({
+    subjective: "",
+    objective: "",
+    assessment: "",
+    plan: "",
+    patient: "",
+    status: "IN-PROGRESS",
+  });
+
+
+  const fetchConsultations = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get("consultations/");
+      setConsultations(response.data);
+    } catch (error) {
+      console.error("Error fetching consultations:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not load consultations." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchConsultations();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "soap") {
+      const fetchPatients = async () => {
+        try {
+          const response = await api.get("patients/");
+          setPatients(response.data);
+        } catch (error) {
+          console.error("Error fetching patients:", error);
+          toast({ variant: "destructive", title: "Error", description: "Could not load patient list." });
+        }
+      };
+      fetchPatients();
+    }
+  }, [activeTab]);
+
+
+  const handleSoapChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLSelectElement>) => {
+    setSoapData({ ...soapData, [e.target.name]: e.target.value });
+  };
+
+
+  const handleSaveConsultation = async () => {
+    if (!soapData.patient) {
+      toast({ variant: "destructive", title: "Error", description: "Please select a patient." });
+      return;
+    }
+
+    try {
+      await api.post("consultations/", soapData);
+      toast({ title: "Success", description: "Consultation saved successfully!" });
+      setActiveTab("list"); // Go back to the list
+      fetchConsultations(); // Refresh the list
+      // Reset form
+      setSoapData({ subjective: "", objective: "", assessment: "", plan: "", patient: "", status: "IN-PROGRESS" });
+    } catch (error) {
+      console.error("Error saving consultation:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to save consultation." });
+    }
+  };
+
+
+  const filtered = consultations.filter((c: any) =>
+      c.patient_name.toLowerCase().includes(search.toLowerCase()) ||
+      c.chief_complaint.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <DashboardLayout>
-      <PageHeader
-        title="Consultations"
-        description="Clinical consultation records and SOAP notes"
-        breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Consultations" }]}
-      />
+      <DashboardLayout>
+        <PageHeader
+            title="Consultations"
+            description="Clinical consultation records and SOAP notes"
+            breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Consultations" }]}
+        />
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search consultations..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+                placeholder="Search consultations..."
+                className="pl-9"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <Button onClick={() => setActiveTab("soap")}>
+            <Plus className="h-4 w-4 mr-2" />New Consultation
+          </Button>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" />New Consultation</Button>
-      </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="list">All Consultations</TabsTrigger>
-          <TabsTrigger value="soap">SOAP Editor</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="list">All Consultations</TabsTrigger>
+            <TabsTrigger value="soap">SOAP Editor</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="list">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Chief Complaint</TableHead>
-                    <TableHead>Diagnosis</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(c => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{c.id}</TableCell>
-                      <TableCell className="font-medium">{c.patient}</TableCell>
-                      <TableCell>{c.doctor}</TableCell>
-                      <TableCell>{c.date}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{c.chief}</TableCell>
-                      <TableCell>{c.diagnosis}</TableCell>
-                      <TableCell><StatusBadge variant={c.status}>{c.status}</StatusBadge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setActiveTab("soap")}>
-                          <FileText className="h-4 w-4 mr-1" />Open
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="list">
+            <Card>
+              <CardContent className="p-0">
+                {loading ? (
+                    <div className="p-10 text-center flex justify-center items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading...
+                    </div>
+                ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Patient</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Chief Complaint</TableHead>
+                          <TableHead>Diagnosis</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filtered.map((c: any) => (
+                            <TableRow key={c.id}>
+                              <TableCell className="font-medium">{c.patient_name}</TableCell>
+                              <TableCell>{new Date(c.date_created).toLocaleDateString()}</TableCell>
+                              <TableCell className="max-w-[200px] truncate">{c.chief_complaint}</TableCell>
+                              <TableCell>{c.diagnosis || "Pending"}</TableCell>
+                              <TableCell>
+                                <StatusBadge variant={c.status.toLowerCase()}>{c.status}</StatusBadge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="sm" onClick={() => setActiveTab("soap")}>
+                                  <FileText className="h-4 w-4 mr-1" />Open
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="soap">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Stethoscope className="h-4 w-4 text-primary" />
-                SOAP Note — Kwame Asante
-              </CardTitle>
-              <p className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Feb 27, 2026 · Dr. Akua Mensah</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { label: "Subjective", placeholder: "Patient's reported symptoms, history..." },
-                { label: "Objective", placeholder: "Vitals, physical exam findings..." },
-                { label: "Assessment", placeholder: "Diagnosis, differential diagnosis..." },
-                { label: "Plan", placeholder: "Treatment plan, medications, follow-up..." },
-              ].map(s => (
-                <div key={s.label}>
-                  <label className="text-sm font-semibold text-foreground mb-1.5 block">{s.label}</label>
-                  <Textarea placeholder={s.placeholder} className="min-h-[80px]" />
+          <TabsContent value="soap">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4 text-primary" />
+                  SOAP Note — New Entry
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+
+                <div className="mb-4">
+                  <label className="text-sm font-semibold text-foreground mb-1.5 block">Select Patient</label>
+                  <select
+                      name="patient"
+                      value={soapData.patient}
+                      onChange={handleSoapChange}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      required
+                  >
+                    <option value="">Select a patient...</option>
+                    {patients.map((p: any) => (
+                        <option key={p.id} value={p.id}>
+                          {p.first_name} {p.last_name} ({p.ghana_card_id})
+                        </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-              <div className="flex gap-2 justify-end pt-2">
-                <Button variant="outline">Save Draft</Button>
-                <Button>Sign & Complete</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </DashboardLayout>
+
+                {[
+                  { label: "Subjective", name: "subjective", placeholder: "Patient's reported symptoms..." },
+                  { label: "Objective", name: "objective", placeholder: "Vitals, physical exam..." },
+                  { label: "Assessment", name: "assessment", placeholder: "Diagnosis..." },
+                  { label: "Plan", name: "plan", placeholder: "Treatment plan, meds..." },
+                ].map(s => (
+                    <div key={s.name}>
+                      <label className="text-sm font-semibold text-foreground mb-1.5 block">{s.label}</label>
+                      <Textarea
+                          name={s.name}
+                          value={(soapData as any)[s.name]}
+                          onChange={handleSoapChange}
+                          placeholder={s.placeholder}
+                          className="min-h-[80px]"
+                      />
+                    </div>
+                ))}
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button variant="outline" onClick={() => setActiveTab("list")}>Cancel</Button>
+                  <Button onClick={handleSaveConsultation}>Sign & Complete</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </DashboardLayout>
   );
 }

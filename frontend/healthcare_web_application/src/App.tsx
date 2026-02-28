@@ -10,6 +10,7 @@ import Registration from "./pages/Registration";
 import Appointments from "./pages/Appointments";
 import Consultations from "./pages/Consultations";
 import Prescriptions from "./pages/Prescriptions";
+import ProtectedRoute from "@/components/ProtectedRoute.tsx";
 import Labs from "./pages/Labs";
 import AuditLogs from "./pages/AuditLogs";
 import UserManagement from "./pages/UserManagement";
@@ -24,19 +25,21 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <Routes >
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Index />} />
-          <Route path="/patients" element={<PatientSearch />} />
-          <Route path="/register" element={<Registration />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/consultations" element={<Consultations />} />
-          <Route path="/prescriptions" element={<Prescriptions />} />
-          <Route path="/labs" element={<Labs />} />
-          <Route path="/audit" element={<AuditLogs />} />
-          <Route path="/users" element={<UserManagement />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/patients" element={<PatientSearch />} />
+            <Route path="/register" element={<Registration />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/consultations" element={<Consultations />} />
+            <Route path="/prescriptions" element={<Prescriptions />} />
+            <Route path="/labs" element={<Labs />} />
+            <Route path="/audit" element={<AuditLogs />} />
+            <Route path="/users" element={<UserManagement />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

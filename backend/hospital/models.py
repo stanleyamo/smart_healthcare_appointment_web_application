@@ -85,3 +85,27 @@ class Prescription(models.Model):
 
     def __str__(self):
         return f"{self.medication_name} for {self.medical_record.patient.last_name}"
+
+class Consultation(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN-PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+    ]
+
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, limit_choices_to={'role': 'DOCTOR'})
+    chief_complaint = models.TextField()
+    diagnosis = models.TextField(blank=True, null=True)
+    subjective = models.TextField(blank=True, null=True)
+    objective = models.TextField(blank=True, null=True)
+    assessment = models.TextField(blank=True, null=True)
+    plan = models.TextField(blank=True, null=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Consultation for {self.patient} - {self.date_created.date()}"

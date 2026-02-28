@@ -1,9 +1,10 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Patient, Appointment, MedicalRecord, Prescription
+from rest_framework.permissions import IsAuthenticated
+from .models import Patient, Appointment, MedicalRecord, Prescription, Consultation
 from .serializers import (
     PatientSerializer, AppointmentSerializer,
-    MedicalRecordSerializer, PrescriptionSerializer
+    MedicalRecordSerializer, PrescriptionSerializer, ConsultationSerializer
 )
 
 
@@ -28,3 +29,8 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
 class PrescriptionViewSet(viewsets.ModelViewSet):
     queryset = Prescription.objects.all()
     serializer_class = PrescriptionSerializer
+
+class ConsultationViewSet(viewsets.ModelViewSet):
+    queryset = Consultation.objects.all()
+    serializer_class = ConsultationSerializer
+    permission_classes = [IsAuthenticated]
