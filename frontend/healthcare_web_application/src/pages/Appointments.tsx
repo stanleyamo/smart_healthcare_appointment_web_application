@@ -16,11 +16,14 @@ import { Combobox } from "@/components/ui/combobox";
 
 
 interface Doctor { id: number; username: string; }
-interface Patient { id: number; name: string; }
+interface Patient { id: string; name: string; }
 interface Appointment {
   id: string;
-  patient: Patient;
-  doctor: Doctor;
+  patient: string;
+  patient_name: string;
+  doctor: number;
+  doctor_name: string;
+  date_time: string;
   date: string;
   time: string;
   type: string;
@@ -77,7 +80,7 @@ export default function Appointments() {
       doctor: formData.get("doctor"),
       date_time: combinedDateTime,
       type: formData.get("type"),
-      status: "CONFIRMED"
+      status: "PENDING"
     };
 
     try {
@@ -103,154 +106,155 @@ export default function Appointments() {
   };
 
   const filtered = appointments.filter(a =>
-      a?.patient?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      a?.doctor?.username?.toLowerCase().includes(search.toLowerCase())
+    a?.patient_name?.toLowerCase().includes(search.toLowerCase()) ||
+    a?.doctor_name?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-      <DashboardLayout>
-        <PageHeader
-            title="Appointments"
-            description="Manage patient appointments and scheduling"
-            breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Appointments" }]}
-        />
+    <DashboardLayout>
+      <PageHeader
+        title="Appointments"
+        description="Manage patient appointments and scheduling"
+        breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Appointments" }]}
+      />
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by patient or doctor..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by patient or doctor..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
 
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />New Appointment</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Schedule Appointment</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreateAppointment} className="space-y-4">
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="h-4 w-4 mr-2" />New Appointment</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Schedule Appointment</DialogTitle></DialogHeader>
+            <form onSubmit={handleCreateAppointment} className="space-y-4">
+              <div>
+                <Label htmlFor="patient">Patient</Label>
+                <Combobox
+                  options={patients.map(p => ({ value: p.id.toString(), label: p.name }))}
+                  value={selectedPatientId}
+                  onChange={setSelectedPatientId}
+                  placeholder="Search or select patient..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="doctor">Doctor</Label>
+                <Select name="doctor" required>
+                  <SelectTrigger><SelectValue placeholder="Select Doctor" /></SelectTrigger>
+                  <SelectContent>
+                    {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.username}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="patient">Patient</Label>
-                  <Combobox
-                      options={patients.map(p => ({ value: p.id.toString(), label: p.name }))}
-                      value={selectedPatientId}
-                      onChange={setSelectedPatientId}
-                      placeholder="Search or select patient..."
-                  />
+                  <Label htmlFor="date">Date</Label>
+                  <Input id="date" name="date" type="date" required />
                 </div>
                 <div>
-                  <Label htmlFor="doctor">Doctor</Label>
-                  <Select name="doctor" required>
-                    <SelectTrigger><SelectValue placeholder="Select Doctor" /></SelectTrigger>
+                  <Label htmlFor="time">Time</Label>
+                  <Select name="time" required>
+                    <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
                     <SelectContent>
-                      {doctors.map(doc => <SelectItem key={doc.id} value={doc.id.toString()}>{doc.username}</SelectItem>)}
+                      {timeSlots.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="date">Date</Label>
-                    <Input id="date" name="date" type="date" required />
-                  </div>
-                  <div>
-                    <Label htmlFor="time">Time</Label>
-                    <Select name="time" required>
-                      <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
-                      <SelectContent>
-                        {timeSlots.map(slot => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full">Schedule</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </div>
+              <Button type="submit" className="w-full">Schedule</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        <Tabs defaultValue="list">
-          <TabsList>
-            <TabsTrigger value="list">List View</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule View</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="list">
+        <TabsList>
+          <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule View</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="list">
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Doctor</TableHead>
-                      <TableHead>Date/Time</TableHead>
-                      <TableHead>Status</TableHead>
+        <TabsContent value="list">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Patient</TableHead>
+                    <TableHead>Doctor</TableHead>
+                    <TableHead>Date/Time</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={4} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
+                  ) : filtered.map(apt => (
+                    <TableRow key={apt.id}>
+                      <TableCell className="font-medium">{apt.patient_name || 'Unknown'}</TableCell>
+                      <TableCell>{apt.doctor_name || 'Unassigned'}</TableCell>
+                      <TableCell>{apt.date} {apt.time}</TableCell>
+
+
+                      <TableCell>
+                        <Select
+                          defaultValue={apt.status}
+                          onValueChange={(value) => handleUpdateStatus(apt.id, value)}
+                        >
+                          <SelectTrigger className="w-[130px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                            <SelectItem value="IN-PROGRESS">In Progress</SelectItem>
+                            <SelectItem value="COMPLETED">Completed</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loading ? (
-                        <TableRow><TableCell colSpan={4} className="text-center py-10"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></TableCell></TableRow>
-                    ) : filtered.map(apt => (
-                        <TableRow key={apt.id}>
-                          <TableCell className="font-medium">{apt.patient?.name || 'Unknown'}</TableCell>
-                          <TableCell>{apt.doctor?.username || 'Unassigned'}</TableCell>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                          <TableCell>{apt.date} {apt.time}</TableCell>
-
-
-                          <TableCell>
-                            <Select
-                                defaultValue={apt.status}
-                                onValueChange={(value) => handleUpdateStatus(apt.id, value)}
-                            >
-                              <SelectTrigger className="w-[130px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                                <SelectItem value="COMPLETED">Completed</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="schedule">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {loading ? (
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-              ) : doctors.map(doctor => (
-                  <Card key={doctor.id}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <User className="h-4 w-4 text-primary" />{doctor.username}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {timeSlots.slice(0, 6).map(slot => {
-                        const apt = appointments.find(a => a.doctor?.id === doctor.id && a.time === slot);
-                        return (
-                            <div key={slot} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${apt ? 'bg-primary/5 border-primary/20' : 'border-dashed border-muted-foreground/20'}`}>
-                              <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
-                              <span className="text-muted-foreground w-16 shrink-0">{slot}</span>
-                              {apt ? (
-                                  <span className="font-medium truncate">{apt.patient?.name}</span>
-                              ) : (
-                                  <span className="text-muted-foreground/50 italic">Available</span>
-                              )}
-                            </div>
-                        );
-                      })}
-                    </CardContent>
-                  </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </DashboardLayout>
+        <TabsContent value="schedule">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {loading ? (
+              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+            ) : doctors.map(doctor => (
+              <Card key={doctor.id}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4 text-primary" />{doctor.username}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {timeSlots.slice(0, 12).map(slot => {
+                    const apt = appointments.find(a => a.doctor === doctor.id && a.time === slot);
+                    return (
+                      <div key={slot} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${apt ? 'bg-primary/5 border-primary/20' : 'border-dashed border-muted-foreground/20'}`}>
+                        <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground w-16 shrink-0">{slot}</span>
+                        {apt ? (
+                          <span className="font-medium truncate">{apt.patient_name}</span>
+                        ) : (
+                          <span className="text-muted-foreground/50 italic">Available</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </DashboardLayout>
   );
 }
