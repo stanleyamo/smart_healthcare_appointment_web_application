@@ -109,7 +109,6 @@ export default function Consultations() {
     setEditingId(note.id);
     const patientId = extractPatientId(note);
 
-    // populate patient id in form and also fetch the summary immediately
     setSoapData(prev => ({ ...prev, patient: patientId }));
     if (patientId) {
       handlePatientSelection(patientId);
@@ -147,7 +146,6 @@ export default function Consultations() {
         await api.post("consultations/", soapData);
         toast({ title: "Saved", description: "New consultation recorded." });
       }
-      // refresh patient summary now that medical record may have changed
       if (soapData.patient) {
         await loadPatientSummary(soapData.patient);
       }
@@ -327,7 +325,6 @@ export default function Consultations() {
                   />
                 </div>
 
-                {/* --- Patient Summary Display --- */}
                 {summaryLoading && <div className="text-sm flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4" /> Loading records...</div>}
                 {patientSummary && (
                     <Card className="border-red-200 bg-red-50">

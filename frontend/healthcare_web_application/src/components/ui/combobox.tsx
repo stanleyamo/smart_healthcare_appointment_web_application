@@ -26,6 +26,12 @@ interface ComboboxProps {
 
 export function Combobox({ options, value, onChange, placeholder = "Select option..." }: ComboboxProps) {
     const [open, setOpen] = React.useState(false)
+    const [query, setQuery] = React.useState("")
+
+    // filter options locally to avoid passing extra props to DOM
+    const filtered = options.filter((opt) =>
+        opt.label.toLowerCase().includes(query.toLowerCase())
+    )
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -44,17 +50,21 @@ export function Combobox({ options, value, onChange, placeholder = "Select optio
             </PopoverTrigger>
             <PopoverContent className="w-full p-0">
                 <Command>
-                    <CommandInput placeholder={`Search...`} />
+                    <CommandInput
+                        placeholder={`Search...`}
+                        value={query}
+                        onValueChange={setQuery}
+                    />
                     <CommandEmpty>No results found.</CommandEmpty>
                     <CommandGroup>
-                        {options.map((option) => (
+                        {filtered.map((option) => (
                             <CommandItem
                                 key={option.value}
                                 value={option.value}
-                                textValue={option.label}    // ensure filtering uses the human-readable name
                                 onSelect={(currentValue) => {
                                     onChange(currentValue === value ? "" : currentValue)
                                     setOpen(false)
+                                    setQuery("")
                                 }}
                             >
                                 <Check

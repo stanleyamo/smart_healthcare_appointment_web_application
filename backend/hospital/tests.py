@@ -93,3 +93,57 @@ class PatientSummarySerializerTest(TestCase):
         data = serializer.data
         self.assertEqual(data.get("allergies"), "Penicillin")
         self.assertEqual(data.get("chronic_conditions"), "Diabetes")
+
+
+class LatestMedicalRecordAPITest(TestCase):
+    def setUp(self):
+        self.patient = Patient.objects.create(
+            ghana_card_id="789",
+            first_name="Anna",
+            last_name="Lee",
+            date_of_birth="1970-01-01",
+            gender="F",
+            phone="555-0000",
+        )
+        self.doctor = User.objects.create_user(
+            username="drjones",
+            password="test",
+            role="DOCTOR",
+            first_name="Tom",
+            last_name="Jones",
+        )
+
+    def test_no_record_returns_404(self):
+        from django.urls import reverse
+        url = reverse('patient-latest-record', args=[str(self.patient.id)])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_returns_most_recent_record(self):
+        rec1 = MedicalRecord.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment=None,
+            diagnosis="Old",
+            symptoms="",
+            notes="",
+            blood_pressure="120/80",
+            temperature=36.5,
+        )
+        rec2 = MedicalRecord.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            appointment=None,
+            diagnosis="Newest",
+            symptoms="",
+            notes="",
+            blood_pressure="130/85",
+            temperature=37,
+        )
+        from django.urls import reverse
+        url = reverse('patient-latest-record', args=[str(self.patient.id)])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data.get('id'), str(rec2.id))
+        self.assertEqual(data.get('diagnosis'), 'Newest')

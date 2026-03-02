@@ -12,6 +12,16 @@ from .serializers import (
     UserSerializer
 )
 
+
+@api_view(['GET'])
+def get_latest_medical_record(request, pk):
+    patient = get_object_or_404(Patient, pk=pk)
+    mr = MedicalRecord.objects.filter(patient=patient).order_by('-created_at').first()
+    if not mr:
+        return Response(status=404)
+    serializer = MedicalRecordSerializer(mr)
+    return Response(serializer.data)
+
 class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -39,6 +49,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 class MedicalRecordViewSet(viewsets.ModelViewSet):
     queryset = MedicalRecord.objects.all()
     serializer_class = MedicalRecordSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'patient']
+    search_fields = ['medication', 'patient__first_name', 'patient__last_name']
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     queryset = Prescription.objects.all()
