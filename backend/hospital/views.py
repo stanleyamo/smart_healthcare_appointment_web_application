@@ -1,6 +1,10 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from .serializers import PatientSummarySerializer
 from .models import Patient, Appointment, MedicalRecord, Prescription, Consultation, User
 from .serializers import (
     PatientSerializer, AppointmentSerializer,
@@ -18,6 +22,12 @@ class PatientViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['first_name', 'last_name', 'ghana_card_id', 'phone']
     ordering_fields = ['created_at', 'last_name']
+
+@api_view(['GET'])
+def get_patient_summary(request, pk):
+    patient = get_object_or_404(Patient, pk=pk)
+    serializer = PatientSummarySerializer(patient)
+    return Response(serializer.data)
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()

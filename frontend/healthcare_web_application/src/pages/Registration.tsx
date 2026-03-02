@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/emr/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Save, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
@@ -23,6 +24,9 @@ const Registration = () => {
         ghana_card_id: "",
         phone: "",
         address: "",
+        allergies: "",
+        chronic_conditions: "",
+        family_history: "",
     });
 
 
@@ -136,11 +140,42 @@ const Registration = () => {
 
                     {step === 3 && (
                         <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground italic">Note: Advanced medical history will be added during the first consultation.</p>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium">Allergies (Drug, Food, Environment) *</Label>
+                                <Textarea
+                                    name="allergies"
+                                    value={formData.allergies}
+                                    onChange={handleChange}
+                                    placeholder="List known allergies (e.g., Penicillin, Peanuts)..."
+                                    className="border-red-200"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium">Chronic Conditions *</Label>
+                                <Textarea
+                                    name="chronic_conditions"
+                                    value={formData.chronic_conditions}
+                                    onChange={handleChange}
+                                    placeholder="List chronic illnesses (e.g., Hypertension, Diabetes)..."
+                                    className="border-red-200"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium">Family History *</Label>
+                                <Textarea
+                                    name="family_history"
+                                    value={formData.family_history}
+                                    onChange={handleChange}
+                                    placeholder="List family history..."
+                                    className="border-red-200"
+                                    required
+                                />
+                            </div>
                         </div>
                     )}
 
-                    {/* Actions */}
                     <div className="flex items-center justify-between pt-3 border-t">
                         <Button
                             type="button"

@@ -30,6 +30,8 @@ class Patient(models.Model):
     phone = models.CharField(max_length=15)
     created_at = models.DateTimeField(auto_now_add=True)
     address = models.CharField(max_length=255, blank=True, null=True)
+    allergies = models.TextField(blank=True, null=True)
+    chronic_conditions = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -62,13 +64,20 @@ class Appointment(models.Model):
 class MedicalRecord(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='medical_records')
     doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='record')
+    appointment = models.OneToOneField(
+        Appointment,
+        on_delete=models.SET_NULL,
+        related_name='record',
+        null=True,
+        blank=True
+    )
     diagnosis = models.TextField()
     symptoms = models.TextField()
     notes = models.TextField(blank=True, null=True)
     blood_pressure = models.CharField(max_length=20, help_text="e.g. 120/80 mmHg")
     temperature = models.DecimalField(max_digits=4, decimal_places=1, help_text="In Celsius")
-
+    allergies = models.TextField(blank=True, null=True)
+    chronic_conditions = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
