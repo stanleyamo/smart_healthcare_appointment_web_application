@@ -11,12 +11,6 @@ class PatientSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}"
 
 class PatientSummarySerializer(serializers.ModelSerializer):
-    # The original version attempted to pull data from a `medicalrecord` reverse
-    # relation that doesn't exist (it's `medical_records` and there may be
-    # multiple entries).  As a result the API always returned empty strings and
-    # the client showed "None documented" even when the patient had values set
-    # during registration.  Use SerializerMethodFields so we can pick the most
-    # recent medical record and fall back to the patient row.
     allergies = serializers.SerializerMethodField()
     chronic_conditions = serializers.SerializerMethodField()
 
@@ -25,7 +19,6 @@ class PatientSummarySerializer(serializers.ModelSerializer):
         fields = ['id', 'allergies', 'chronic_conditions']
 
     def _latest_medical(self, obj):
-        # grab the newest record if it exists
         return obj.medical_records.order_by('-created_at').first()
 
     def get_allergies(self, obj):
@@ -81,8 +74,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class ConsultationSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     doctor_name = serializers.SerializerMethodField()
-
-    # input-only fields from the form, stored later in MedicalRecord
     diagnosis = serializers.CharField(write_only=True, required=False, allow_blank=True)
     symptoms = serializers.CharField(write_only=True, required=False, allow_blank=True)
     notes = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -102,11 +93,6 @@ class ConsultationSerializer(serializers.ModelSerializer):
         return f"Dr. {obj.doctor.first_name} {obj.doctor.last_name}" if obj.doctor else ""
 
     def _fetch_medical_record(self, instance):
-        # Return the most recent medical record for this patient.  There is no
-        # direct FK from Consultation to MedicalRecord, so we look up by
-        # patient and sort by creation time.  This mirrors the logic used in the
-        # PatientSummarySerializer and prevents losing data when displaying
-        # consultations.
         return MedicalRecord.objects.filter(patient=instance.patient).order_by('-created_at').first()
 
     def to_representation(self, instance):
