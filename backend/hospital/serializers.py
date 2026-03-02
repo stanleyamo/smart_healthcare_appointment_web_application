@@ -49,12 +49,25 @@ class AppointmentSerializer(serializers.ModelSerializer):
         return obj.date_time.strftime("%H:%M")
 
 class ConsultationSerializer(serializers.ModelSerializer):
-    patient_name = serializers.CharField(source='patient.name', read_only=True)
-    doctor_name = serializers.CharField(source='doctor.name', read_only=True)
+    # `patient.name` doesn't exist on the model (name is a SerializerMethodField
+    # on PatientSerializer), so the previous implementation returned empty
+    # values.  Use SerializerMethodField like in AppointmentSerializer to
+    # compute the full name.  This ensures `patient_name` is populated for
+    # both newly created and existing consultations.
+    patient_name = serializers.SerializerMethodField()
+    doctor_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Consultation
         fields = '__all__'
+
+    def get_patient_name(self, obj):
+        return f"{obj.patient.first_name} {obj.patient.last_name}" if obj.patient else ""
+
+    def get_doctor_name(self, obj):
+        if obj.doctor:
+            return f"Dr. {obj.doctor.first_name} {obj.doctor.last_name}"
+        return ""
 
 
 class DoctorSerializer(serializers.ModelSerializer):

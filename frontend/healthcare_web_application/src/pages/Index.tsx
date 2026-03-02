@@ -11,18 +11,21 @@ import api from "@/lib/api";
 const Index = () => {
   const [patients, setPatients] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [patientRes, apptRes] = await Promise.all([
+        const [patientRes, apptRes, consRes] = await Promise.all([
           api.get('patients/'),
-          api.get('appointments/')
+          api.get('appointments/'),
+          api.get('consultations/')
         ]);
 
         setPatients(patientRes.data.slice(-5).reverse());
         setAppointments(apptRes.data.slice(0, 4));
+        setConsultations(consRes.data);
         setLoading(false);
       } catch (error) {
         console.error("Error connecting to Django API:", error);
@@ -75,7 +78,7 @@ const Index = () => {
               changeType="neutral"
               icon={CalendarDays}
           />
-          <StatCard title="Consultations" value={0} change="Awaiting records" changeType="neutral" icon={Stethoscope} />
+          <StatCard title="Consultations" value={consultations.length} change="Total logged" changeType="neutral" icon={Stethoscope} />
           <StatCard title="Critical Alerts" value={0} change="Clear for now" changeType="positive" icon={AlertTriangle} />
         </div>
 

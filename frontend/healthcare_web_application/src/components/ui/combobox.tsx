@@ -51,6 +51,7 @@ export function Combobox({ options, value, onChange, placeholder = "Select optio
                             <CommandItem
                                 key={option.value}
                                 value={option.value}
+                                textValue={option.label}    // ensure filtering uses the human-readable name
                                 onSelect={(currentValue) => {
                                     onChange(currentValue === value ? "" : currentValue)
                                     setOpen(false)
