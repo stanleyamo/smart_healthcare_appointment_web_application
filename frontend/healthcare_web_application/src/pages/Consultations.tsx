@@ -25,13 +25,12 @@ export default function Consultations() {
   const [activeTab, setActiveTab] = useState("list");
   const [viewingNote, setViewingNote] = useState<any>(null);
 
-  // --- State for Medical Record Summary ---
   const [patientSummary, setPatientSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // --- Updated SOAP Data Structure to include Medical Record fields ---
+
   const [soapData, setSoapData] = useState({
     patient: "",
     chief_complaint: "",
@@ -40,7 +39,6 @@ export default function Consultations() {
     assessment: "",
     plan: "",
     status: "IN-PROGRESS",
-    // New fields from MedicalRecord model
     diagnosis: "",
     symptoms: "",
     notes: "",
@@ -66,7 +64,6 @@ export default function Consultations() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // helper to get a consistent string id out of a consultation object
   const extractPatientId = (note: any) => {
     if (!note) return "";
     let id = "";
@@ -126,7 +123,6 @@ export default function Consultations() {
       assessment: note.assessment || "",
       plan: note.plan || "",
       status: note.status || "IN-PROGRESS",
-      // Map existing medical record data if available in the note object
       diagnosis: note.diagnosis || "",
       symptoms: note.symptoms || "",
       notes: note.notes || "",
@@ -199,8 +195,6 @@ export default function Consultations() {
   return (
       <DashboardLayout>
         <PageHeader title="Consultations" description="Clinical Records & Searchable Patient SOAP Notes" />
-
-        {/* --- View Note Dialog --- */}
         <Dialog open={!!viewingNote} onOpenChange={() => setViewingNote(null)}>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
@@ -218,7 +212,6 @@ export default function Consultations() {
               <DialogDescription>Detailed view of clinical consultation and vitals</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              {/* patient summary inside view modal */}
               {(patientSummary || summaryLoading) && (
                 <Card className="border-red-200 bg-red-50">
                   <CardHeader className="py-2 px-4 flex flex-row items-center gap-2">
@@ -242,7 +235,6 @@ export default function Consultations() {
                 <p className="text-sm font-semibold">{viewingNote?.chief_complaint}</p>
               </div>
 
-              {/* Vitals in View Dialog */}
               {(viewingNote?.blood_pressure || viewingNote?.temperature) && (
                   <div className="grid grid-cols-2 gap-2 text-sm bg-muted p-2 rounded">
                     <p><strong>BP:</strong> {viewingNote?.blood_pressure || 'N/A'}</p>
@@ -355,7 +347,6 @@ export default function Consultations() {
                   <Input value={soapData.chief_complaint} onChange={e => setSoapData({ ...soapData, chief_complaint: e.target.value })} placeholder="Primary reason for visit" />
                 </div>
 
-                {/* --- Vitals Section --- */}
                 <Card className="bg-muted/30">
                   <CardHeader className="py-3">
                     <CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /> Vitals & Clinical Data</CardTitle>
@@ -384,7 +375,6 @@ export default function Consultations() {
                   </CardContent>
                 </Card>
 
-                {/* --- SOAP Section --- */}
                 {['Subjective', 'Objective', 'Assessment', 'Plan'].map(f => (
                     <div key={f}>
                       <label className="text-xs font-bold mb-1.5 block">{f}</label>

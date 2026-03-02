@@ -26,7 +26,6 @@ const Registration = () => {
         address: "",
         allergies: "",
         chronic_conditions: "",
-        family_history: "",
     });
 
 
@@ -158,17 +157,6 @@ const Registration = () => {
                                     value={formData.chronic_conditions}
                                     onChange={handleChange}
                                     placeholder="List chronic illnesses (e.g., Hypertension, Diabetes)..."
-                                    className="border-red-200"
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium">Family History *</Label>
-                                <Textarea
-                                    name="family_history"
-                                    value={formData.family_history}
-                                    onChange={handleChange}
-                                    placeholder="List family history..."
                                     className="border-red-200"
                                     required
                                 />
