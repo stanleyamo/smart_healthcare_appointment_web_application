@@ -66,31 +66,60 @@ export default function Consultations() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handlePatientSelection = async (patientId: string) => {
-    setSoapData(prev => ({ ...prev, patient: patientId }));
-    setPatientSummary(null);
-
-    if (patientId) {
-      setSummaryLoading(true);
-      try {
-        const response = await api.get(`patients/${patientId}/summary/`);
-        setPatientSummary(response.data);
-      } catch (error: any) {
-        console.error("Could not load patient summary:", error);
-      } finally {
-        setSummaryLoading(false);
+  // helper to get a consistent string id out of a consultation object
+  const extractPatientId = (note: any) => {
+    if (!note) return "";
+    let id = "";
+    if (note.patient) {
+      if (typeof note.patient === "object") {
+        id = note.patient.id?.toString() || "";
+      } else {
+        id = note.patient.toString();
       }
     }
+    if (!id && note.patient_id) {
+      id = note.patient_id.toString();
+    }
+    return id;
+  };
+
+  const loadPatientSummary = async (patientId: string) => {
+    setPatientSummary(null);
+    if (!patientId) return;
+    setSummaryLoading(true);
+    try {
+      const response = await api.get(`patients/${patientId}/summary/`);
+      setPatientSummary(response.data);
+    } catch (error: any) {
+      console.error("Could not load patient summary:", error);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handlePatientSelection = async (patientId: string) => {
+    setSoapData(prev => ({ ...prev, patient: patientId }));
+    await loadPatientSummary(patientId);
+  };
+
+  const handleView = (note: any) => {
+    setViewingNote(note);
+    const pid = extractPatientId(note);
+    if (pid) loadPatientSummary(pid);
   };
 
   const handleEdit = (note: any) => {
     setEditingId(note.id);
-    let patientId = note.patient?.id?.toString() || note.patient_id?.toString() || "";
+    const patientId = extractPatientId(note);
 
-    if (patientId) handlePatientSelection(patientId);
+    // populate patient id in form and also fetch the summary immediately
+    setSoapData(prev => ({ ...prev, patient: patientId }));
+    if (patientId) {
+      handlePatientSelection(patientId);
+    }
 
-    setSoapData({
-      patient: patientId,
+    setSoapData(prev => ({
+      ...prev,
       chief_complaint: note.chief_complaint || "",
       subjective: note.subjective || "",
       objective: note.objective || "",
@@ -103,7 +132,7 @@ export default function Consultations() {
       notes: note.notes || "",
       blood_pressure: note.blood_pressure || "",
       temperature: note.temperature || "",
-    });
+    }));
     setActiveTab("soap");
     setViewingNote(null);
   };
@@ -121,6 +150,10 @@ export default function Consultations() {
       } else {
         await api.post("consultations/", soapData);
         toast({ title: "Saved", description: "New consultation recorded." });
+      }
+      // refresh patient summary now that medical record may have changed
+      if (soapData.patient) {
+        await loadPatientSummary(soapData.patient);
       }
       resetForm();
       fetchData();
@@ -185,6 +218,25 @@ export default function Consultations() {
               <DialogDescription>Detailed view of clinical consultation and vitals</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {/* patient summary inside view modal */}
+              {(patientSummary || summaryLoading) && (
+                <Card className="border-red-200 bg-red-50">
+                  <CardHeader className="py-2 px-4 flex flex-row items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <CardTitle className="text-sm text-red-900 font-bold">Medical Record Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="py-2 px-4 text-sm text-red-800 space-y-1">
+                    {summaryLoading ? (
+                      <div className="flex items-center gap-2"><Loader2 className="animate-spin h-4 w-4" /> Loading records...</div>
+                    ) : (
+                      <>
+                        <p><strong>Allergies:</strong> {patientSummary?.allergies || "None documented"}</p>
+                        <p><strong>Conditions:</strong> {patientSummary?.chronic_conditions || "None documented"}</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
               <div className="bg-primary/5 p-3 rounded-lg border border-primary/10">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Chief Complaint</span>
                 <p className="text-sm font-semibold">{viewingNote?.chief_complaint}</p>
@@ -245,7 +297,7 @@ export default function Consultations() {
                       {filtered.map((c: any) => (
                           <TableRow key={c.id}>
                             <TableCell className="font-medium text-primary">
-                              <button onClick={() => setViewingNote(c)} className="hover:underline text-left">
+                              <button onClick={() => handleView(c)} className="hover:underline text-left">
                                 {c.patient_name || c.patient?.name || "Unknown"}
                               </button>
                             </TableCell>
@@ -255,7 +307,7 @@ export default function Consultations() {
                             <TableCell className="text-xs text-muted-foreground">{new Date(c.date_created).toLocaleDateString()}</TableCell>
                             <TableCell className="max-w-[200px] truncate italic">"{c.chief_complaint}"</TableCell>
                             <TableCell className="text-right space-x-1">
-                              <Button variant="ghost" size="icon" onClick={() => setViewingNote(c)}><Eye className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleView(c)}><Eye className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => handleEdit(c)}><Edit2 className="h-4 w-4" /></Button>
                               <Button variant="ghost" size="icon" onClick={() => generatePDF(c)}><Download className="h-4 w-4" /></Button>
                             </TableCell>

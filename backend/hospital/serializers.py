@@ -11,11 +11,34 @@ class PatientSerializer(serializers.ModelSerializer):
         return f"{obj.first_name} {obj.last_name}"
 
 class PatientSummarySerializer(serializers.ModelSerializer):
-    allergies = serializers.CharField(source='medicalrecord.allergies', read_only=True)
-    chronic_conditions = serializers.CharField(source='medicalrecord.chronic_conditions', read_only=True)
+    # The original version attempted to pull data from a `medicalrecord` reverse
+    # relation that doesn't exist (it's `medical_records` and there may be
+    # multiple entries).  As a result the API always returned empty strings and
+    # the client showed "None documented" even when the patient had values set
+    # during registration.  Use SerializerMethodFields so we can pick the most
+    # recent medical record and fall back to the patient row.
+    allergies = serializers.SerializerMethodField()
+    chronic_conditions = serializers.SerializerMethodField()
+
     class Meta:
         model = Patient
         fields = ['id', 'allergies', 'chronic_conditions']
+
+    def _latest_medical(self, obj):
+        # grab the newest record if it exists
+        return obj.medical_records.order_by('-created_at').first()
+
+    def get_allergies(self, obj):
+        mr = self._latest_medical(obj)
+        if mr and mr.allergies:
+            return mr.allergies
+        return obj.allergies or ""
+
+    def get_chronic_conditions(self, obj):
+        mr = self._latest_medical(obj)
+        if mr and mr.chronic_conditions:
+            return mr.chronic_conditions
+        return obj.chronic_conditions or ""
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,6 +81,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class ConsultationSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     doctor_name = serializers.SerializerMethodField()
+
+    # input-only fields from the form, stored later in MedicalRecord
     diagnosis = serializers.CharField(write_only=True, required=False, allow_blank=True)
     symptoms = serializers.CharField(write_only=True, required=False, allow_blank=True)
     notes = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -75,6 +100,27 @@ class ConsultationSerializer(serializers.ModelSerializer):
 
     def get_doctor_name(self, obj):
         return f"Dr. {obj.doctor.first_name} {obj.doctor.last_name}" if obj.doctor else ""
+
+    def _fetch_medical_record(self, instance):
+        # Return the most recent medical record for this patient.  There is no
+        # direct FK from Consultation to MedicalRecord, so we look up by
+        # patient and sort by creation time.  This mirrors the logic used in the
+        # PatientSummarySerializer and prevents losing data when displaying
+        # consultations.
+        return MedicalRecord.objects.filter(patient=instance.patient).order_by('-created_at').first()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        mr = self._fetch_medical_record(instance)
+        if mr:
+            data['diagnosis'] = mr.diagnosis or data.get('diagnosis', '')
+            data['symptoms'] = mr.symptoms or data.get('symptoms', '')
+            data['notes'] = mr.notes or data.get('notes', '')
+            data['blood_pressure'] = mr.blood_pressure or data.get('blood_pressure', '')
+            data['temperature'] = str(mr.temperature) if mr.temperature is not None else data.get('temperature', None)
+            data['allergies'] = mr.allergies or data.get('allergies', '')
+            data['chronic_conditions'] = mr.chronic_conditions or data.get('chronic_conditions', '')
+        return data
 
     def create(self, validated_data):
         medical_record_data = {
