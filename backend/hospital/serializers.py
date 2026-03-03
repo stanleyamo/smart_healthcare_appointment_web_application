@@ -39,9 +39,18 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'role', 'first_name', 'last_name']
 
 class PrescriptionSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Prescription
         fields = '__all__'
+
+    def get_patient_name(self, obj):
+        try:
+            patient = obj.medical_record.patient
+            return f"{patient.first_name} {patient.last_name}"
+        except AttributeError:
+            return "Unknown Patient"
 
 class MedicalRecordSerializer(serializers.ModelSerializer):
     prescriptions = PrescriptionSerializer(many=True, read_only=True)
@@ -132,8 +141,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
         return consultation
 
     def update(self, instance, validated_data):
-        medical_record = getattr(instance, 'medical_record', None)
-
+        medical_record = self._fetch_medical_record(instance)
         medical_record_data = {
             'diagnosis': validated_data.pop('diagnosis', medical_record.diagnosis if medical_record else ''),
             'symptoms': validated_data.pop('symptoms', medical_record.symptoms if medical_record else ''),
@@ -147,10 +155,9 @@ class ConsultationSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-
         MedicalRecord.objects.update_or_create(
             patient=instance.patient,
-            appointment=instance.appointment,
+            id=medical_record.id if medical_record else None,
             defaults=medical_record_data
         )
 
