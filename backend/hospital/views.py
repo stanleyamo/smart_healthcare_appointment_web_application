@@ -1,17 +1,23 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .serializers import PatientSummarySerializer
-from .models import Patient, Appointment, MedicalRecord, Prescription, Consultation, User
+from .serializers import PatientSummarySerializer, MyTokenObtainPairSerializer
+from .models import (
+    Patient, Appointment, MedicalRecord,
+    Prescription, Consultation, User, LabOrder)
 from .serializers import (
     PatientSerializer, AppointmentSerializer,
     MedicalRecordSerializer, PrescriptionSerializer, ConsultationSerializer,
-    UserSerializer
+    UserSerializer, LabOrderSerializer
 )
 
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
 @api_view(['GET'])
 def get_latest_medical_record(request, pk):
@@ -27,6 +33,7 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
 
 class PatientViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
     queryset = Patient.objects.all()
     serializer_class = PatientSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -61,3 +68,14 @@ class ConsultationViewSet(viewsets.ModelViewSet):
     queryset = Consultation.objects.all()
     serializer_class = ConsultationSerializer
     permission_classes = [IsAuthenticated]
+
+class LabOrderViewSet(viewsets.ModelViewSet):
+    queryset = LabOrder.objects.all().order_by('-created_at')
+    serializer_class = LabOrderSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset

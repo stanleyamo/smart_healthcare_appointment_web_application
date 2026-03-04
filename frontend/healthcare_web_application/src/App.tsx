@@ -21,31 +21,56 @@ import PatientDetail from "./pages/PatientDetail";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes >
-          <Route path="/login" element={<Login />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/patients" element={<PatientSearch />} />
-            <Route path="/register" element={<Registration />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/consultations" element={<Consultations />} />
-            <Route path="/patients/:id" element={<PatientDetail />} />
-            <Route path="/prescriptions" element={<Prescriptions />} />
-            <Route path="/labs" element={<Labs />} />
-            <Route path="/audit" element={<AuditLogs />} />
-            <Route path="/users" element={<UserManagement />} />
-            <Route path="/settings" element={<Settings />} />
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public Route */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Base Protected Routes (Shared by all staff) */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/patients" element={<PatientSearch />} />
+              <Route path="/patients/:id" element={<PatientDetail />} />
+            </Route>
+
+            {/* Front Desk / OPD Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["RECEPTIONIST", "ADMIN"]} />}>
+              <Route path="/register" element={<Registration />} />
+            </Route>
+
+            {/* Clinical & Nursing Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["DOCTOR", "NURSE", "RECEPTIONIST", "ADMIN"]} />}>
+              <Route path="/appointments" element={<Appointments />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["DOCTOR", "ADMIN"]} />}>
+              <Route path="/consultations" element={<Consultations />} />
+            </Route>
+
+
+            <Route element={<ProtectedRoute allowedRoles={["DOCTOR", "LAB_TECH", "NURSE", "ADMIN"]} />}>
+              <Route path="/labs" element={<Labs />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["DOCTOR", "PHARMACIST", "ADMIN"]} />}>
+              <Route path="/prescriptions" element={<Prescriptions />} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+              <Route path="/audit" element={<AuditLogs />} />
+              <Route path="/users" element={<UserManagement />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
 );
 
 export default App;

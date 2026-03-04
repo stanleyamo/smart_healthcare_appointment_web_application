@@ -6,89 +6,173 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FlaskConical, Search, Plus, FileDown } from "lucide-react";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { FlaskConical, Search, Plus, FileDown, Loader2, ClipboardCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-const labOrders = [
-  { id: "LAB-001", patient: "Kwame Asante", test: "Full Blood Count", orderedBy: "Dr. Akua Mensah", date: "2026-02-27", status: "completed" as const, result: "Normal" },
-  { id: "LAB-002", patient: "Ama Serwaa", test: "Fasting Blood Sugar", orderedBy: "Dr. Kofi Boateng", date: "2026-02-27", status: "pending" as const, result: "—" },
-  { id: "LAB-003", patient: "Yaw Mensah", test: "Malaria RDT", orderedBy: "Dr. Akua Mensah", date: "2026-02-26", status: "completed" as const, result: "Negative" },
-  { id: "LAB-004", patient: "Efua Ankrah", test: "Liver Function Tests", orderedBy: "Dr. Esi Owusu", date: "2026-02-26", status: "in-progress" as const, result: "—" },
-  { id: "LAB-005", patient: "Adwoa Poku", test: "Chest X-Ray", orderedBy: "Dr. Kofi Boateng", date: "2026-02-27", status: "pending" as const, result: "—" },
-];
+export default function Labs() {
+  const { toast } = useToast();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [resultText, setResultText] = useState("");
+  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
 
-const radiologyOrders = [
-  { id: "RAD-001", patient: "Kofi Darko", test: "Chest X-Ray (PA)", orderedBy: "Dr. Akua Mensah", date: "2026-02-27", status: "completed" as const, result: "No abnormalities" },
-  { id: "RAD-002", patient: "Adwoa Poku", test: "Abdominal Ultrasound", orderedBy: "Dr. Kofi Boateng", date: "2026-02-27", status: "pending" as const, result: "—" },
-  { id: "RAD-003", patient: "Ama Serwaa", test: "ECG", orderedBy: "Dr. Esi Owusu", date: "2026-02-26", status: "in-progress" as const, result: "—" },
-];
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("lab-orders/");
+      setOrders(res.data);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to fetch diagnostic orders." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-function OrderTable({ orders }: { orders: typeof labOrders }) {
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSubmitResult = async () => {
+    try {
+      await api.patch(`lab-orders/${selectedOrder.id}/`, {
+        results: resultText,
+        status: "COMPLETED"
+      });
+      toast({ title: "Success", description: "Results submitted successfully." });
+      setIsResultDialogOpen(false);
+      setResultText("");
+      fetchData();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to submit results." });
+    }
+  };
+
+  const filtered = orders.filter((o: any) =>
+      o.patient_name.toLowerCase().includes(search.toLowerCase()) ||
+      o.test_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const labData = filtered.filter((o: any) => o.category === "LAB");
+  const radData = filtered.filter((o: any) => o.category === "RAD");
+
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Patient</TableHead>
-              <TableHead>Test</TableHead>
-              <TableHead>Ordered By</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Result</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map(o => (
-              <TableRow key={o.id}>
-                <TableCell className="font-mono text-xs text-muted-foreground">{o.id}</TableCell>
-                <TableCell className="font-medium">{o.patient}</TableCell>
-                <TableCell className="flex items-center gap-2"><FlaskConical className="h-3 w-3 text-primary" />{o.test}</TableCell>
-                <TableCell>{o.orderedBy}</TableCell>
-                <TableCell>{o.date}</TableCell>
-                <TableCell><StatusBadge variant={o.status}>{o.status}</StatusBadge></TableCell>
-                <TableCell className={o.result === "—" ? "text-muted-foreground" : "font-medium"}>{o.result}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm"><FileDown className="h-4 w-4" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+      <DashboardLayout>
+        <PageHeader
+            title="Labs & Radiology"
+            description="Manage diagnostic requests and input patient results"
+            breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Labs" }]}
+        />
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+                placeholder="Search by patient or test..."
+                className="pl-9"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <Button onClick={fetchData} variant="outline" className="mr-2">Refresh</Button>
+        </div>
+
+        <Tabs defaultValue="lab">
+          <TabsList className="mb-4">
+            <TabsTrigger value="lab">Laboratory</TabsTrigger>
+            <TabsTrigger value="radiology">Radiology</TabsTrigger>
+          </TabsList>
+
+          {loading ? (
+              <div className="flex justify-center p-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+          ) : (
+              <>
+                <TabsContent value="lab"><OrderTable orders={labData} onOpenResult={(o) => { setSelectedOrder(o); setIsResultDialogOpen(true); }} /></TabsContent>
+                <TabsContent value="radiology"><OrderTable orders={radData} onOpenResult={(o) => { setSelectedOrder(o); setIsResultDialogOpen(true); }} /></TabsContent>
+              </>
+          )}
+        </Tabs>
+
+        {/* Result Submission Dialog */}
+        <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Submit Results: {selectedOrder?.test_name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">Patient: <strong>{selectedOrder?.patient_name}</strong></p>
+              <Textarea
+                  placeholder="Enter findings, measurements, or observations..."
+                  value={resultText}
+                  onChange={(e) => setResultText(e.target.value)}
+                  className="min-h-[150px]"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsResultDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSubmitResult}>Confirm & Complete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </DashboardLayout>
   );
 }
 
-export default function Labs() {
-  const [search, setSearch] = useState("");
-
+function OrderTable({ orders, onOpenResult }: { orders: any[], onOpenResult: (o: any) => void }) {
   return (
-    <DashboardLayout>
-      <PageHeader
-        title="Labs & Radiology"
-        description="Laboratory and radiology orders, results, and reports"
-        breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Labs & Radiology" }]}
-      />
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search orders..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <Button><Plus className="h-4 w-4 mr-2" />New Lab Order</Button>
-      </div>
-
-      <Tabs defaultValue="lab">
-        <TabsList>
-          <TabsTrigger value="lab">Laboratory</TabsTrigger>
-          <TabsTrigger value="radiology">Radiology</TabsTrigger>
-        </TabsList>
-        <TabsContent value="lab"><OrderTable orders={labOrders} /></TabsContent>
-        <TabsContent value="radiology"><OrderTable orders={radiologyOrders} /></TabsContent>
-      </Tabs>
-    </DashboardLayout>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Patient</TableHead>
+                <TableHead>Test</TableHead>
+                <TableHead>Ordered By</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Result Summary</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">No orders found.</TableCell></TableRow>
+              ) : (
+                  orders.map(o => (
+                      <TableRow key={o.id}>
+                        <TableCell className="font-medium">{o.patient_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FlaskConical className="h-3 w-3 text-primary" />
+                            {o.test_name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{o.doctor_name}</TableCell>
+                        <TableCell>
+                          <StatusBadge variant={o.status.toLowerCase() as any}>{o.status}</StatusBadge>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-sm">
+                          {o.results || <span className="text-muted-foreground italic">Awaiting input...</span>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {o.status !== 'COMPLETED' ? (
+                              <Button size="sm" onClick={() => onOpenResult(o)}>
+                                <ClipboardCheck className="h-4 w-4 mr-1" /> Input
+                              </Button>
+                          ) : (
+                              <Button variant="ghost" size="sm">
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                  ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
   );
 }

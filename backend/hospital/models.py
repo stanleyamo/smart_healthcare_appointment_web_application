@@ -11,6 +11,8 @@ class User(AbstractUser):
         ('NURSE', 'Nursing Staff'),
         ('PHARMACIST', 'Pharmacist'),
         ('RECEPTIONIST', 'Front Desk/OPD'),
+        ('LAB_TECH', 'Laboratory Technician'),
+        ('RADIOLOGIST', 'Radiologist'),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='RECEPTIONIST')
     staff_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
@@ -119,3 +121,23 @@ class Consultation(models.Model):
 
     def __str__(self):
         return f"Consultation for {self.patient} - {self.date_created.date()}"
+
+class LabOrder(models.Model):
+    CATEGORY_CHOICES = [('LAB', 'Laboratory'), ('RAD', 'Radiology')]
+    STATUS_CHOICES = [('PENDING', 'Pending'), ('IN-PROGRESS', 'In Progress'), ('COMPLETED', 'Completed')]
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='lab_orders')
+    medical_record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='lab_orders')
+    test_name = models.CharField(max_length=255) # e.g., Full Blood Count
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='LAB')
+    ordered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    instructions = models.TextField(blank=True)
+    results = models.TextField(blank=True)
+    result_file = models.FileField(upload_to='lab_results/', null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.test_name} - {self.patient.last_name}"
