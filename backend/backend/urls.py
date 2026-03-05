@@ -6,7 +6,7 @@ from hospital.views import (
     PatientViewSet, AppointmentViewSet, MedicalRecordViewSet,
     ConsultationViewSet, DoctorViewSet, get_patient_summary,
     get_latest_medical_record, PrescriptionViewSet,
-    LabOrderViewSet, MyTokenObtainPairView
+    LabOrderViewSet, MyTokenObtainPairView, AuditLogViewSet
 )
 
 router = DefaultRouter()
@@ -17,6 +17,7 @@ router.register(r'consultations', ConsultationViewSet)
 router.register(r'doctors', DoctorViewSet)
 router.register(r'prescriptions', PrescriptionViewSet)
 router.register(r'lab-orders', LabOrderViewSet)
+router.register(r'audit-logs', AuditLogViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

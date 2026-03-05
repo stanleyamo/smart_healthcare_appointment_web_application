@@ -96,7 +96,6 @@ export default function Labs() {
           )}
         </Tabs>
 
-        {/* Result Submission Dialog */}
         <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
           <DialogContent>
             <DialogHeader>

@@ -1,4 +1,5 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, permissions
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -8,11 +9,12 @@ from django.shortcuts import get_object_or_404
 from .serializers import PatientSummarySerializer, MyTokenObtainPairSerializer
 from .models import (
     Patient, Appointment, MedicalRecord,
-    Prescription, Consultation, User, LabOrder)
+    Prescription, Consultation, User, LabOrder,
+    AuditLog)
 from .serializers import (
     PatientSerializer, AppointmentSerializer,
     MedicalRecordSerializer, PrescriptionSerializer, ConsultationSerializer,
-    UserSerializer, LabOrderSerializer
+    UserSerializer, LabOrderSerializer, AuditLogSerializer
 )
 
 
@@ -79,3 +81,14 @@ class LabOrderViewSet(viewsets.ModelViewSet):
         if category:
             queryset = queryset.filter(category=category)
         return queryset
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = AuditLog.objects.all().order_by('-timestamp')
+    serializer_class = AuditLogSerializer
+    permission_classes = [permissions.IsAdminUser]
+    pagination_class = StandardResultsSetPagination

@@ -2,7 +2,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (Patient, Appointment,
                      MedicalRecord, Prescription,
-                     User, Consultation, LabOrder)
+                     User, Consultation, LabOrder,
+                     AuditLog)
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -186,3 +187,10 @@ class LabOrderSerializer(serializers.ModelSerializer):
 
     def get_doctor_name(self, obj):
         return f"Dr. {obj.ordered_by.last_name}" if obj.ordered_by else "Unknown"
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.ReadOnlyField(source='user.get_full_name')
+
+    class Meta:
+        model = AuditLog
+        fields = ['id', 'timestamp', 'user_name', 'action', 'resource', 'target', 'ip_address']

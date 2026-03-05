@@ -14,7 +14,7 @@ const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"] },
   { title: "Patient Search", url: "/patients", icon: Search, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"] },
   { title: "Registration", url: "/register", icon: UserPlus, roles: ["ADMIN", "RECEPTIONIST"] },
-  { title: "Appointments", url: "/appointments", icon: CalendarDays, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST"] },
+  { title: "Appointments", url: "/appointments", icon: CalendarDays, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"] },
 ];
 
 const clinicalNav = [

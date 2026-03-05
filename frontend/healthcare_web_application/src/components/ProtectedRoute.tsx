@@ -13,9 +13,9 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-
     if (allowedRoles && !allowedRoles.includes(userRole || "")) {
-        return <Navigate to="/unauthorized" replace />;
+        console.error(`Access Denied: Role '${userRole}' not in ${allowedRoles}`);
+        return <Navigate to="/" replace />;
     }
 
     return <Outlet />;

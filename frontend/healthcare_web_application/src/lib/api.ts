@@ -4,7 +4,7 @@ const api = axios.create({
     baseURL: "http://127.0.0.1:8000/api/",
 });
 
-// Request Interceptor: Add access token to headers
+
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem("access_token");
     if (token) {
@@ -13,13 +13,15 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Response Interceptor: Handle 401 Unauthorized errors
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        if (!error.response) {
+            console.error("Network Error: Please check if your Django server is running.");
+            return Promise.reject(error);
+        }
 
-        // If error is 401 and we haven't already retried the request
         if (error.response.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
@@ -34,11 +36,9 @@ api.interceptors.response.use(
                 const { access } = response.data;
                 localStorage.setItem("access_token", access);
 
-                // Update authorization header with new token and retry original request
                 originalRequest.headers.Authorization = `Bearer ${access}`;
                 return api(originalRequest);
             } catch (refreshError) {
-                // If refresh token is expired or invalid, log out the user
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("refresh_token");
                 window.location.href = "/login";

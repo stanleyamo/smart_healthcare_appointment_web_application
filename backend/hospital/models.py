@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.contrib.auth.signals import user_logged_in, user_login_failed
+from django.dispatch import receiver
+from .utils import log_action
 import uuid
 
 # 1. CUSTOM USER MODEL (Staff/Doctors/Admins)
@@ -141,3 +144,20 @@ class LabOrder(models.Model):
 
     def __str__(self):
         return f"{self.test_name} - {self.patient.last_name}"
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=20)
+    resource = models.CharField(max_length=50)
+    target = models.CharField(max_length=255)
+    ip_address = models.GenericIPAddressField(null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+@receiver(user_logged_in)
+def log_user_login(sender, request, user, **kwargs):
+    log_action(user, "AUTH", "Login", "User logged in successfully", request)
+
+@receiver(user_login_failed)
+def log_user_login_failed(sender, credentials, request, **kwargs):
+    log_action(None, "AUTH", "Login Failed", f"Failed attempt for: {credentials.get('username')}", request)
