@@ -31,7 +31,7 @@ def get_latest_medical_record(request, pk):
     return Response(serializer.data)
 
 class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.filter(role='DOCTOR')
     serializer_class = UserSerializer
 
 class PatientViewSet(viewsets.ModelViewSet):
