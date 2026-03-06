@@ -161,3 +161,16 @@ def log_user_login(sender, request, user, **kwargs):
 @receiver(user_login_failed)
 def log_user_login_failed(sender, credentials, request, **kwargs):
     log_action(None, "AUTH", "Login Failed", f"Failed attempt for: {credentials.get('username')}", request)
+
+class HospitalSettings(models.Model):
+    facility_name = models.CharField(max_length=255, default="Korle Bu Teaching Hospital")
+    facility_code = models.CharField(max_length=50, default="KBTH-001")
+    contact_phone = models.CharField(max_length=20, default="+233 302 665 401")
+    email = models.EmailField(default="info@kbth.gov.gh")
+    region = models.CharField(max_length=100, default="greater-accra")
+    session_timeout = models.IntegerField(default=30)
+    audit_logging = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super(HospitalSettings, self).save(*args, **kwargs)

@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, permissions
+from rest_framework import viewsets, filters, permissions, response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
@@ -11,11 +11,11 @@ from .serializers import PatientSummarySerializer, MyTokenObtainPairSerializer
 from .models import (
     Patient, Appointment, MedicalRecord,
     Prescription, Consultation, User, LabOrder,
-    AuditLog)
+    AuditLog, HospitalSettings)
 from .serializers import (
     PatientSerializer, AppointmentSerializer,
     MedicalRecordSerializer, PrescriptionSerializer, ConsultationSerializer,
-    UserSerializer, LabOrderSerializer, AuditLogSerializer
+    UserSerializer, LabOrderSerializer, AuditLogSerializer, HospitalSettingsSerializer
 )
 
 User = get_user_model()
@@ -98,3 +98,15 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAdminUser]
     pagination_class = StandardResultsSetPagination
+
+class HospitalSettingsViewSet(viewsets.ModelViewSet):
+    serializer_class = HospitalSettingsSerializer
+
+    def get_object(self):
+        obj, created = HospitalSettings.objects.get_or_create(pk=1)
+        return obj
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return response.Response(serializer.data)

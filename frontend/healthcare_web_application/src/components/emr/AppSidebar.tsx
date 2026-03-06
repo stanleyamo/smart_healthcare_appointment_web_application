@@ -1,6 +1,6 @@
 import {
-  LayoutDashboard, Users, Search, UserPlus, CalendarDays,
-  Stethoscope, Pill, FlaskConical, ClipboardList, Settings, ShieldCheck, LogOut, Heart
+  LayoutDashboard, Search, UserPlus, CalendarDays,
+  Stethoscope, Pill, FlaskConical, ClipboardList, Settings, ShieldCheck, LogOut
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -75,12 +75,12 @@ export function AppSidebar() {
       <Sidebar collapsible="icon" className="border-r-0">
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-              <Heart className="h-5 w-5" />
-            </div>
+            {/*<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">*/}
+            {/*  /!*<Heart className="h-5 w-5" />*!/*/}
+            {/*</div>*/}
             {!collapsed && (
                 <div>
-                  <p className="text-sm font-bold font-display text-sidebar-foreground">GH-EMR</p>
+                  <p className="text-lg font-bold font-display text-sidebar-foreground">GH-EMR</p>
                   <p className="text-[11px] text-sidebar-muted">Ghana Health Service</p>
                 </div>
             )}

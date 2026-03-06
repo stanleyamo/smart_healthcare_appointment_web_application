@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from .models import (Patient, Appointment,
                      MedicalRecord, Prescription,
                      User, Consultation, LabOrder,
-                     AuditLog)
+                     AuditLog, HospitalSettings)
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -212,3 +212,8 @@ class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
         fields = ['id', 'timestamp', 'user_name', 'action', 'resource', 'target', 'ip_address']
+
+class HospitalSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HospitalSettings
+        fields = '__all__'

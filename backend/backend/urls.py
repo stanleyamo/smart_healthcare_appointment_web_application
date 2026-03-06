@@ -7,12 +7,13 @@ from hospital.views import (
     ConsultationViewSet, DoctorViewSet, get_patient_summary,
     get_latest_medical_record, PrescriptionViewSet,
     LabOrderViewSet, MyTokenObtainPairView, AuditLogViewSet,
-    UserViewSet
+    UserViewSet, HospitalSettingsViewSet
 )
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'patients', PatientViewSet)
+router.register(r'settings', HospitalSettingsViewSet, basename='settings')
 router.register(r'appointments', AppointmentViewSet)
 router.register(r'records', MedicalRecordViewSet)
 router.register(r'consultations', ConsultationViewSet)
