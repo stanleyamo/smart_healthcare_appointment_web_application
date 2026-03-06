@@ -91,9 +91,9 @@ class MedicalRecord(models.Model):
 class Prescription(models.Model):
     medical_record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='prescriptions')
     medication_name = models.CharField(max_length=200)
-    dosage = models.CharField(max_length=100) # e.g. 500mg
-    frequency = models.CharField(max_length=100) # e.g. 2x daily
-    duration = models.CharField(max_length=100) # e.g. 7 days
+    dosage = models.CharField(max_length=100)
+    frequency = models.CharField(max_length=100)
+    duration = models.CharField(max_length=100)
     instructions = models.TextField(blank=True)
 
     issued_at = models.DateTimeField(auto_now_add=True)
@@ -127,23 +127,51 @@ class Consultation(models.Model):
 
 class LabOrder(models.Model):
     CATEGORY_CHOICES = [('LAB', 'Laboratory'), ('RAD', 'Radiology')]
-    STATUS_CHOICES = [('PENDING', 'Pending'), ('IN-PROGRESS', 'In Progress'), ('COMPLETED', 'Completed')]
+
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('SAMPLE_TAKEN', 'Sample Taken'),
+        ('COMPLETED', 'Completed')
+    ]
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='lab_orders')
+
     medical_record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='lab_orders')
-    test_name = models.CharField(max_length=255) # e.g., Full Blood Count
+
+    test_name = models.CharField(max_length=255) # Doctor types: "Malaria, FBC"
     category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='LAB')
-    ordered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    ordered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='ordered_labs'
+    )
+
+
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='performed_labs'
+    )
 
     instructions = models.TextField(blank=True)
     results = models.TextField(blank=True)
     result_file = models.FileField(upload_to='lab_results/', null=True, blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+
+
     created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.test_name} - {self.patient.last_name}"
+        return f"{self.test_name} - {self.patient.last_name} ({self.status})"
+
+    class Meta:
+        ordering = ['-created_at']
 
 
 class AuditLog(models.Model):

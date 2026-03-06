@@ -9,6 +9,8 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarFooter, SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 
 const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE", "LAB_TECH", "PHARMACIST"] },
@@ -38,24 +40,41 @@ function NavSection({ label, items }: { label: string; items: any[] }) {
 
   if (filteredItems.length === 0) return null;
 
+  const [pendingLabs, setPendingLabs] = useState(0);
+
+  useEffect(() => {
+    if (filteredItems.some(i => i.title === "Labs & Radiology")) {
+      api.get("labs/pending_count/").then(res => {
+        setPendingLabs(res.data.count);
+      }).catch(err => console.error("Could not fetch pending labs", err));
+    }
+  }, [filteredItems]);
+
   return (
-      <SidebarGroup>
-        {!collapsed && <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-semibold">{label}</SidebarGroupLabel>}
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {filteredItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                    <NavLink to={item.url} end className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold">
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+    <SidebarGroup>
+      {!collapsed && <SidebarGroupLabel className="text-sidebar-muted text-[11px] uppercase tracking-wider font-semibold">{label}</SidebarGroupLabel>}
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {filteredItems.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                <NavLink to={item.url} end className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold">
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && (
+                    <div className="flex items-center">
+                      <span>{item.title}</span>
+                      {item.title === "Labs & Radiology" && pendingLabs > 0 && (userRole === "LAB_TECH" || userRole === "RADIOLOGIST") && (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                      )}
+                    </div>
+                  )}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 }
 
@@ -72,41 +91,41 @@ export function AppSidebar() {
   };
 
   return (
-      <Sidebar collapsible="icon" className="border-r-0">
-        <SidebarHeader className="p-4">
-          <div className="flex items-center gap-2.5">
-            {/*<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">*/}
-            {/*  /!*<Heart className="h-5 w-5" />*!/*/}
-            {/*</div>*/}
-            {!collapsed && (
-                <div>
-                  <p className="text-lg font-bold font-display text-sidebar-foreground">GH-EMR</p>
-                  <p className="text-[11px] text-sidebar-muted">Ghana Health Service</p>
-                </div>
-            )}
-          </div>
-        </SidebarHeader>
-
-        <SidebarContent className="px-2">
-          <NavSection label="Overview" items={mainNav} />
-          <NavSection label="Clinical" items={clinicalNav} />
-          <NavSection label="Administration" items={adminNav} />
-        </SidebarContent>
-
-        <SidebarFooter className="p-3">
-          <div className={`flex items-center gap-3 rounded-lg bg-sidebar-accent p-3 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[10px] font-bold text-sidebar-primary-foreground uppercase">
-              {userName.split(' ').map(n => n[0]).join('')}
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-2.5">
+          {/*<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">*/}
+          {/*  /!*<Heart className="h-5 w-5" />*!/*/}
+          {/*</div>*/}
+          {!collapsed && (
+            <div>
+              <p className="text-lg font-bold font-display text-sidebar-foreground">GH-EMR</p>
+              <p className="text-[11px] text-sidebar-muted">Ghana Health Service</p>
             </div>
-            {!collapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-sidebar-foreground truncate">{userName}</p>
-                  <p className="text-[10px] text-sidebar-muted truncate uppercase tracking-tighter">{userRole}</p>
-                </div>
-            )}
-            {!collapsed && <LogOut className="h-4 w-4 text-sidebar-muted hover:text-destructive cursor-pointer shrink-0" onClick={handleLogout} />}
+          )}
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="px-2">
+        <NavSection label="Overview" items={mainNav} />
+        <NavSection label="Clinical" items={clinicalNav} />
+        <NavSection label="Administration" items={adminNav} />
+      </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        <div className={`flex items-center gap-3 rounded-lg bg-sidebar-accent p-3 ${collapsed ? 'justify-center' : ''}`}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[10px] font-bold text-sidebar-primary-foreground uppercase">
+            {userName.split(' ').map(n => n[0]).join('')}
           </div>
-        </SidebarFooter>
-      </Sidebar>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-sidebar-foreground truncate">{userName}</p>
+              <p className="text-[10px] text-sidebar-muted truncate uppercase tracking-tighter">{userRole}</p>
+            </div>
+          )}
+          {!collapsed && <LogOut className="h-4 w-4 text-sidebar-muted hover:text-destructive cursor-pointer shrink-0" onClick={handleLogout} />}
+        </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

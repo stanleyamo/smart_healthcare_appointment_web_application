@@ -1,9 +1,10 @@
-from rest_framework import viewsets, filters, permissions, response
+from rest_framework import viewsets, filters, permissions, response, status
 from rest_framework.pagination import PageNumberPagination
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
@@ -27,14 +28,6 @@ class UserViewSet(viewsets.ModelViewSet):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
-@api_view(['GET'])
-def get_latest_medical_record(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    mr = MedicalRecord.objects.filter(patient=patient).order_by('-created_at').first()
-    if not mr:
-        return Response(status=404)
-    serializer = MedicalRecordSerializer(mr)
-    return Response(serializer.data)
 
 class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role='DOCTOR')
@@ -48,11 +41,26 @@ class PatientViewSet(viewsets.ModelViewSet):
     search_fields = ['first_name', 'last_name', 'ghana_card_id', 'phone']
     ordering_fields = ['created_at', 'last_name']
 
-@api_view(['GET'])
-def get_patient_summary(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
-    serializer = PatientSummarySerializer(patient)
-    return Response(serializer.data)
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        patient = self.get_object()
+        return Response({
+            "allergies": patient.allergies if hasattr(patient, 'allergies') else "None",
+            "blood_group": patient.blood_group if hasattr(patient, 'blood_group') else "N/A",
+            "chronic_conditions": patient.chronic_conditions if hasattr(patient, 'chronic_conditions') else "None",
+            "last_visit": "2023-10-01" # Example static data or fetch from MedicalRecord
+        })
+
+
+    @action(detail=True, methods=['get'], url_path='records/latest')
+    def latest_record(self, request, pk=None):
+        patient = self.get_object()
+        # Using 'created_at' from your Model
+        mr = MedicalRecord.objects.filter(patient=patient).order_by('-created_at').first()
+        if not mr:
+            return Response({"detail": "No records found"}, status=404)
+        serializer = MedicalRecordSerializer(mr)
+        return Response(serializer.data)
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
@@ -77,16 +85,48 @@ class ConsultationViewSet(viewsets.ModelViewSet):
     serializer_class = ConsultationSerializer
     permission_classes = [IsAuthenticated]
 
+    def perform_create(self, serializer):
+        consultation = serializer.save(doctor=self.request.user)
+        record = MedicalRecord.objects.create(
+            patient=consultation.patient,
+            doctor=consultation.doctor,
+            appointment=None,
+            diagnosis=consultation.diagnosis or "Pending",
+            symptoms=consultation.chief_complaint,
+            blood_pressure=self.request.data.get('blood_pressure', 'N/A'),
+            temperature=self.request.data.get('temperature', 0.0),
+        )
+
+        consultation.generated_record_id = record.id
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        instance = Consultation.objects.get(id=response.data['id'])
+        if hasattr(instance, 'generated_record_id'):
+            response.data['medical_record_id'] = instance.generated_record_id
+        return response
+
 class LabOrderViewSet(viewsets.ModelViewSet):
-    queryset = LabOrder.objects.all().order_by('-created_at')
+    queryset = LabOrder.objects.all()
     serializer_class = LabOrderSerializer
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        category = self.request.query_params.get('category')
-        if category:
-            queryset = queryset.filter(category=category)
-        return queryset
+    def perform_create(self, serializer):
+        serializer.save(ordered_by=self.request.user)
+
+    def perform_update(self, serializer):
+        new_status = self.request.data.get('status')
+        if new_status == 'COMPLETED':
+            serializer.save(
+                performed_by=self.request.user,
+                completed_at=timezone.now()
+            )
+        else:
+            serializer.save()
+
+    @action(detail=False, methods=['get'])
+    def pending_count(self, request):
+        count = LabOrder.objects.filter(status='PENDING').count()
+        return Response({'count': count})
 
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 100

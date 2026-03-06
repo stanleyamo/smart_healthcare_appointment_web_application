@@ -137,6 +137,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         mr = self._fetch_medical_record(instance)
         if mr:
+            data['medical_record_id'] = mr.id
             data['diagnosis'] = mr.diagnosis or data.get('diagnosis', '')
             data['symptoms'] = mr.symptoms or data.get('symptoms', '')
             data['notes'] = mr.notes or data.get('notes', '')
@@ -144,6 +145,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
             data['temperature'] = str(mr.temperature) if mr.temperature is not None else data.get('temperature', None)
             data['allergies'] = mr.allergies or data.get('allergies', '')
             data['chronic_conditions'] = mr.chronic_conditions or data.get('chronic_conditions', '')
+            data['lab_orders'] = LabOrderSerializer(mr.lab_orders.all(), many=True).data
         return data
 
     def create(self, validated_data):
@@ -195,16 +197,26 @@ class ConsultationSerializer(serializers.ModelSerializer):
 class LabOrderSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     doctor_name = serializers.SerializerMethodField()
+    performed_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = LabOrder
         fields = '__all__'
+        read_only_fields = ['ordered_by', 'created_at', 'completed_at']
 
     def get_patient_name(self, obj):
         return f"{obj.patient.first_name} {obj.patient.last_name}"
 
     def get_doctor_name(self, obj):
-        return f"Dr. {obj.ordered_by.last_name}" if obj.ordered_by else "Unknown"
+        return f"Dr. {obj.ordered_by.last_name}" if obj.ordered_by else "System"
+
+    def get_performed_by_name(self, obj):
+        return obj.performed_by.username if obj.performed_by else "Pending"
+
+    def validate(self, data):
+        if self.instance and self.instance.status == 'COMPLETED':
+            raise serializers.ValidationError("This record is locked and cannot be modified.")
+        return data
 
 class AuditLogSerializer(serializers.ModelSerializer):
     user_name = serializers.ReadOnlyField(source='user.get_full_name')

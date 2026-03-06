@@ -20,7 +20,6 @@ export function TopBar() {
 
             <div className="ml-auto flex items-center gap-2">
                 <div className="text-right hidden sm:block">
-                    {/* Now using the dynamic state instead of hardcoded text */}
                     <p className="text-xs font-medium text-foreground">{facilityName}</p>
                 </div>
             </div>
