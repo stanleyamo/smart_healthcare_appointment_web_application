@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainNav = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"] },
-  { title: "Patient Search", url: "/patients", icon: Search, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"] },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE", "LAB_TECH", "PHARMACIST"] },
+  { title: "Patient Search", url: "/patients", icon: Search, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE", "LAB_TECH", "PHARMACIST"] },
   { title: "Registration", url: "/register", icon: UserPlus, roles: ["ADMIN", "RECEPTIONIST"] },
   { title: "Appointments", url: "/appointments", icon: CalendarDays, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "NURSE"] },
 ];
 
 const clinicalNav = [
-  { title: "Consultations", url: "/consultations", icon: Stethoscope, roles: ["ADMIN", "DOCTOR"] },
+  { title: "Consultations", url: "/consultations", icon: Stethoscope, roles: ["ADMIN", "DOCTOR", "NURSE"] },
   { title: "Prescriptions", url: "/prescriptions", icon: Pill, roles: ["ADMIN", "DOCTOR", "PHARMACIST"] },
   { title: "Labs & Radiology", url: "/labs", icon: FlaskConical, roles: ["ADMIN", "DOCTOR", "LAB_TECH", "NURSE"] },
 ];
@@ -26,7 +26,7 @@ const clinicalNav = [
 const adminNav = [
   { title: "Audit Logs", url: "/audit", icon: ClipboardList, roles: ["ADMIN"] },
   { title: "User Management", url: "/users", icon: ShieldCheck, roles: ["ADMIN"] },
-  { title: "Settings", url: "/settings", icon: Settings, roles: ["ADMIN", "DOCTOR", "RECEPTIONIST", "PHARMACIST", "LAB_TECH"] },
+  { title: "Settings", url: "/settings", icon: Settings, roles: ["ADMIN"] },
 ];
 
 function NavSection({ label, items }: { label: string; items: any[] }) {

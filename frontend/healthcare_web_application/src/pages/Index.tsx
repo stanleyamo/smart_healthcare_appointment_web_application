@@ -79,7 +79,7 @@ const Index = () => {
               icon={CalendarDays}
           />
           <StatCard title="Consultations" value={consultations.length} change="Total logged" changeType="neutral" icon={Stethoscope} />
-          <StatCard title="Critical Alerts" value={0} change="Clear for now" changeType="positive" icon={AlertTriangle} />
+          {/*<StatCard title="Critical Alerts" value={0} change="Clear for now" changeType="positive" icon={AlertTriangle} />*/}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -106,7 +106,7 @@ const Index = () => {
                       </div>
                   ))
               ) : (
-                  <p className="p-4 text-xs text-muted-foreground italic">No patients in database.</p>
+                  <p className="p-4 text-xs text-muted-foreground italic">No patients</p>
               )}
             </div>
           </div>

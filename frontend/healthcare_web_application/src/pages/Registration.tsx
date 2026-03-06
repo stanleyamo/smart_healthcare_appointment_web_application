@@ -52,7 +52,7 @@ const Registration = () => {
             });
 
 
-            setTimeout(() => navigate("/"), 2000);
+            setTimeout(() => navigate("/patients"), 2000);
         } catch (error: any) {
             console.error(error);
             toast({
