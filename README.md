@@ -56,8 +56,7 @@ The system follows a strict medical logic to ensure data integrity:
    git clone [https://github.com/yourusername/medflow-emr.git](https://github.com/yourusername/medflow-emr.git)
 
 2. **Backend Setup**
-
-  ```bash
+  ``bash
   cd backend
   pip install -r requirements.txt
   python manage.py migrate
