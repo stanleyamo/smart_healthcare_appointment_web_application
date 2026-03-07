@@ -56,16 +56,14 @@ The system follows a strict medical logic to ensure data integrity:
    git clone [https://github.com/yourusername/medflow-emr.git](https://github.com/yourusername/medflow-emr.git)
 
 2. **Backend Setup**
-  ``bash
-  cd backend
-  pip install -r requirements.txt
-  python manage.py migrate
-  python manage.py runserver
-  Frontend Setup
+   ```bash
+     cd backend
+     pip install -r requirements.txt
+     python manage.py migrate
+     python manage.py runserver
 
 3. **Frontend Setup**
-```bash
-cd frontend
-npm install
-npm run dev
-Note: Ensure your .env file in the frontend is pointed to http://127.0.0.1:8000 to allow the API calls to resolve correctly.
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
